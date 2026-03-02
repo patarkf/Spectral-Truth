@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/assets/spectral-truth-favicon.png" width="128" height="128" alt="Spectral Truth" />
+</p>
+
 # Spectral Truth
 
 **Spectral Truth** is a local-only app that spots fake or lossy-upconverted “lossless” files (WAV, FLAC, AIFF) using spectral cutoff and clipping checks—in the spirit of tools like VerifAI Audio and Faking the Funk.
