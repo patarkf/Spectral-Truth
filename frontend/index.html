@@ -17,8 +17,13 @@
 <body>
   <div class="container">
     <header>
-      <h1>Analysis History</h1>
-      <p>View and manage your past audio analyses.</p>
+      <div class="header-row">
+        <div>
+          <h1>Analysis History</h1>
+          <p>View and manage your past audio analyses.</p>
+        </div>
+        <button type="button" class="reload-app-btn" id="reload-app-btn" title="Reload the page to pick up new UI changes. Backend changes require restarting the server." aria-label="Reload app">Reload app</button>
+      </div>
     </header>
 
     <div id="status" class="status" style="display: none;"></div>
@@ -52,6 +57,7 @@
         <span class="icon" aria-hidden="true">♪</span>
         Your Analysis History
       </div>
+      <div id="quality-counters" class="quality-counters" aria-live="polite"></div>
       <div class="action-bar">
         <div class="search-wrap">
           <input type="search" id="search-input" placeholder="Search" aria-label="Search analysis history" />
@@ -78,8 +84,8 @@
             <tr>
               <th>Track name</th>
               <th>Quality</th>
-              <th>Bitrate</th>
-              <th>Actual</th>
+              <th><button type="button" class="th-sort" data-sort="bitrate" aria-label="Sort by bitrate">Bitrate</button></th>
+              <th><button type="button" class="th-sort" data-sort="actual" aria-label="Sort by actual bitrate">Actual</button></th>
               <th>Clipping %</th>
               <th>Peak</th>
               <th>Date</th>

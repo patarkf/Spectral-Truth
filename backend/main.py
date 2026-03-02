@@ -16,6 +16,7 @@ from backend.database import (
     get_history,
     get_all_for_export,
     clear_history,
+    get_verdict_counts,
     get_lexicon_track_ids_by_verdict,
 )
 from backend.analyzer import analyze_file, ALLOWED_SUFFIXES
@@ -136,6 +137,12 @@ def history(
         deleted = clear_history()
         return {"items": [], "cleared": True, "deleted": deleted}
     return {"items": get_history(search=search, verdict=verdict, limit=limit)}
+
+
+@app.get("/api/history/counts")
+def history_counts():
+    """Return counts by verdict: fake, suspicious, real, total."""
+    return get_verdict_counts()
 
 
 def _lexicon_debug_shape():

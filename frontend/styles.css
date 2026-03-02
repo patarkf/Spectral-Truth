@@ -59,6 +59,13 @@ body {
 header {
   margin-bottom: 2rem;
 }
+.header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
 header h1 {
   font-size: 1.75rem;
   font-weight: 700;
@@ -68,6 +75,20 @@ header p {
   color: var(--text-muted);
   font-size: 0.95rem;
   margin: 0;
+}
+.reload-app-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.reload-app-btn:hover {
+  color: var(--text);
+  border-color: var(--text-muted);
 }
 
 /* Section: Your Analysis History */
@@ -81,6 +102,38 @@ header p {
 }
 .section-title .icon {
   font-size: 1.25rem;
+}
+
+/* Quality counters */
+.quality-counters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+.quality-counters .count {
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 600;
+}
+.quality-counters .count-fake {
+  background: rgba(231, 76, 60, 0.2);
+  color: var(--fake);
+}
+.quality-counters .count-suspicious {
+  background: rgba(241, 196, 15, 0.2);
+  color: var(--suspicious);
+}
+.quality-counters .count-real {
+  background: rgba(39, 174, 96, 0.2);
+  color: var(--real);
+}
+.quality-counters .count-total {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
 }
 
 /* Action bar: search + export */
@@ -281,6 +334,21 @@ th {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   border-bottom: 1px solid var(--border);
+}
+th .th-sort {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+th .th-sort:hover {
+  color: var(--text);
 }
 td {
   padding: 0.85rem 1rem;

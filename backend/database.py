@@ -137,6 +137,23 @@ def clear_history() -> int:
         return n
 
 
+def get_verdict_counts() -> dict:
+    """Return counts by verdict: { fake, suspicious, real, total }."""
+    with sqlite3.connect(DB_PATH) as conn:
+        cur = conn.execute(
+            """
+            SELECT verdict, COUNT(*) FROM analyses GROUP BY verdict
+            """
+        )
+        rows = cur.fetchall()
+    counts = {"fake": 0, "suspicious": 0, "real": 0}
+    for verdict, n in rows:
+        if verdict in counts:
+            counts[verdict] = n
+    counts["total"] = sum(counts[v] for v in ("fake", "suspicious", "real"))
+    return counts
+
+
 def get_lexicon_track_ids_by_verdict() -> dict:
     """
     Return analyses that have lexicon_track_id set, grouped by verdict.

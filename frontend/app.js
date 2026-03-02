@@ -1,5 +1,8 @@
 (function () {
   const API = "/api";
+  let currentItems = [];
+  let sortBy = null;   // "bitrate" | "actual" | null
+  let sortOrder = "asc"; // "asc" | "desc"
 
   function formatDate(iso) {
     if (!iso) return "—";
@@ -112,13 +115,79 @@
     return params.toString();
   }
 
+  async function loadCounts() {
+    const el = document.getElementById("quality-counters");
+    if (!el) return;
+    try {
+      const res = await fetch(API + "/history/counts", { cache: "no-store" });
+      if (!res.ok) return;
+      const c = await res.json();
+      const total = c.total || 0;
+      if (total === 0) {
+        el.innerHTML = "";
+        el.style.display = "none";
+        return;
+      }
+      el.style.display = "flex";
+      el.innerHTML = `
+        <span class="count count-fake">Fake: ${c.fake ?? 0}</span>
+        <span class="count count-suspicious">Suspicious: ${c.suspicious ?? 0}</span>
+        <span class="count count-real">Real: ${c.real ?? 0}</span>
+        <span class="count count-total">Total: ${total}</span>
+      `;
+    } catch (e) {
+      el.innerHTML = "";
+      el.style.display = "none";
+    }
+  }
+
+  function applySort() {
+    if (!currentItems.length || !sortBy) {
+      renderTable(currentItems);
+      return;
+    }
+    const key = sortBy === "bitrate" ? "bitrate_kbps" : "actual_bitrate_kbps";
+    const sorted = [...currentItems].sort((a, b) => {
+      const pushNullLast = sortOrder === "asc" ? Infinity : -Infinity;
+      const va = a[key] != null ? Number(a[key]) : pushNullLast;
+      const vb = b[key] != null ? Number(b[key]) : pushNullLast;
+      if (va === vb) return 0;
+      const cmp = va < vb ? -1 : 1;
+      return sortOrder === "asc" ? cmp : -cmp;
+    });
+    renderTable(sorted);
+  }
+
+  function updateSortButtons() {
+    document.querySelectorAll(".th-sort").forEach((btn) => {
+      const col = btn.getAttribute("data-sort");
+      const label = col === "bitrate" ? "Bitrate" : "Actual";
+      const arrow = sortBy === col ? (sortOrder === "asc" ? " ↑" : " ↓") : "";
+      btn.textContent = label + arrow;
+    });
+  }
+
+  function setSort(column) {
+    if (sortBy === column) {
+      sortOrder = sortOrder === "asc" ? "desc" : "asc";
+    } else {
+      sortBy = column;
+      sortOrder = "asc";
+    }
+    applySort();
+    updateSortButtons();
+  }
+
   async function loadHistory() {
     const q = buildHistoryParams();
     const url = q ? API + "/history?" + q : API + "/history";
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error("Failed to load history");
     const data = await res.json();
-    renderTable(data.items || []);
+    currentItems = data.items || [];
+    applySort();
+    updateSortButtons();
+    loadCounts();
   }
 
   function onSearch() {
@@ -314,12 +383,25 @@
     if (syncBtn) syncBtn.addEventListener("click", lexiconSyncPlaylists);
   }
 
+  function setupReloadApp() {
+    const btn = document.getElementById("reload-app-btn");
+    if (btn) btn.addEventListener("click", () => { location.reload(); });
+  }
+
+  function setupSortableHeaders() {
+    document.querySelectorAll(".th-sort").forEach((btn) => {
+      btn.addEventListener("click", () => setSort(btn.getAttribute("data-sort")));
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     loadHistory();
     setupUpload();
     setupExport();
     setupClearHistory();
     setupLexicon();
+    setupReloadApp();
+    setupSortableHeaders();
     lexiconRefreshStatus();
     const searchInput = document.getElementById("search-input");
     if (searchInput) {
