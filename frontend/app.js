@@ -146,7 +146,7 @@
     const leftPad = 58;
     const bottomPad = 36;
     const rightPad = 88;
-    const topPad = 10;
+    const topPad = 28; /* room for "Amplitude (dB)" label above the graph */
     const specW = nT;
     const specH = nF;
     const w = leftPad + specW + rightPad;
@@ -246,17 +246,17 @@
     ctx.font = "10px Inter, sans-serif";
     ctx.textAlign = "left";
     ctx.textBaseline = "middle";
+    /* Position labels by linear dB (not capped level) so they stay evenly spaced and don’t overlap */
     [-140, -120, -100, -80, -60, -40, -20, 0].forEach((db) => {
       const linear = (db - minDb) / dbRange;
-      const level = dbToLevel(linear);
-      const y = topPad + specH * (1 - level / levelCap);
+      const y = topPad + specH * (1 - linear);
       ctx.fillText(db + " dB", barX + barW + 6, y);
     });
     ctx.textAlign = "center";
     ctx.textBaseline = "bottom";
     ctx.fillStyle = "rgba(232,232,236,0.9)";
     ctx.font = "11px Inter, sans-serif";
-    ctx.fillText("Amplitude (dB)", barX + barW / 2, topPad - 4);
+    ctx.fillText("Amplitude (dB)", barX + barW / 2, topPad - 12);
 
     // Border around spectrogram
     ctx.strokeStyle = "rgba(255,255,255,0.35)";
