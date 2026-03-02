@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Audio Analyzer</title>
+  <link rel="stylesheet" href="/styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Analysis History</h1>
+      <p>View and manage your past audio analyses.</p>
+    </header>
+
+    <div id="status" class="status" style="display: none;"></div>
+    <div id="loader-wrap" class="loader-wrap" style="display: none;" aria-live="polite">
+      <div class="loader-spinner" aria-hidden="true"></div>
+      <p class="loader-label">Analyzing…</p>
+    </div>
+
+    <section class="upload-zone" id="upload-zone" aria-label="Upload audio files">
+      <p>Drag and drop WAV, FLAC, or AIFF files here, or</p>
+      <label for="file-input">Choose files / folder (multiple)</label>
+      <input type="file" id="file-input" accept=".wav,.flac,.aiff,.aif" multiple />
+    </section>
+
+    <section class="lexicon-section" id="lexicon-section" aria-labelledby="lexicon-title">
+      <div class="section-title" id="lexicon-title">
+        <span class="icon" aria-hidden="true">◉</span>
+        Lexicon
+      </div>
+      <div id="lexicon-status" class="lexicon-status" aria-live="polite">Checking…</div>
+      <div class="lexicon-actions">
+        <button type="button" class="lexicon-btn" id="lexicon-fetch-btn">Fetch library</button>
+        <button type="button" class="lexicon-btn" id="lexicon-analyze-btn">Analyze from Lexicon</button>
+        <button type="button" class="lexicon-btn" id="lexicon-sync-btn">Sync Fake / Suspicious playlists</button>
+      </div>
+      <p id="lexicon-message" class="lexicon-message" style="display: none;"></p>
+    </section>
+
+    <section aria-labelledby="history-title">
+      <div class="section-title" id="history-title">
+        <span class="icon" aria-hidden="true">♪</span>
+        Your Analysis History
+      </div>
+      <div class="action-bar">
+        <div class="search-wrap">
+          <input type="search" id="search-input" placeholder="Search" aria-label="Search analysis history" />
+        </div>
+        <div class="filter-wrap">
+          <label for="quality-filter" class="filter-label">Quality</label>
+          <select id="quality-filter" aria-label="Filter by quality">
+            <option value="">All</option>
+            <option value="fake">Fake</option>
+            <option value="suspicious">Suspicious</option>
+            <option value="real">Real</option>
+          </select>
+        </div>
+        <select id="export-format" aria-label="Export format">
+          <option value="csv">CSV</option>
+          <option value="json">JSON</option>
+        </select>
+        <button type="button" class="export-btn" id="export-btn">Export Report</button>
+        <button type="button" class="clear-btn" id="clear-btn">Clear history</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Track name</th>
+              <th>Quality</th>
+              <th>Bitrate</th>
+              <th>Actual</th>
+              <th>Clipping %</th>
+              <th>Peak</th>
+              <th>Date</th>
+              <th>Size</th>
+              <th>Format</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="empty-state">
+        <p id="empty-state-message">No analyses yet. Upload WAV, FLAC, or AIFF files above to start.</p>
+      </div>
+    </section>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>
