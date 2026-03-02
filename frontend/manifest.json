@@ -1,0 +1,23 @@
+{
+  "name": "Spectral Truth",
+  "short_name": "Spectral Truth",
+  "description": "Detect fake or lossy-upconverted lossless audio (WAV, FLAC, AIFF). Integrates with Lexicon.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f0f12",
+  "theme_color": "#7c6af2",
+  "icons": [
+    {
+      "src": "/assets/spectral-truth-favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/spectral-truth-favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -347,6 +347,16 @@ def serve_js():
     return FileResponse(FRONTEND_DIR / "app.js", media_type="application/javascript")
 
 
+@app.get("/assets/spectral-truth-favicon.png")
+def serve_favicon():
+    return FileResponse(FRONTEND_DIR / "assets" / "spectral-truth-favicon.png", media_type="image/png")
+
+
+@app.get("/manifest.json")
+def serve_manifest():
+    return FileResponse(FRONTEND_DIR / "manifest.json", media_type="application/manifest+json")
+
+
 def run():
     import uvicorn
     uvicorn.run(app, host=HOST, port=PORT)
