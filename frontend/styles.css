@@ -26,7 +26,7 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 1500px;
   margin: 0 auto;
   padding: 2rem;
 }
@@ -432,6 +432,124 @@ tr:hover td {
 .date-cell { color: var(--text-muted); font-size: 0.85rem; }
 .size-cell { color: var(--text-muted); font-size: 0.85rem; }
 .format-cell { font-weight: 500; }
+
+.th-spectrum { white-space: nowrap; }
+.spectrum-cell { vertical-align: middle; white-space: nowrap; }
+.spectrum-btn {
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.spectrum-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* Spectrum modal */
+.spectrum-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+.spectrum-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+.spectrum-modal-content {
+  position: relative;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 92vh;
+  overflow: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+.spectrum-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.spectrum-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+.spectrum-modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.spectrum-modal-info {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+}
+.spectrum-modal-info:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+.spectrum-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+.spectrum-modal-close:hover {
+  color: var(--text);
+}
+.spectrum-help {
+  padding: 0 1.25rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.spectrum-help[hidden] {
+  display: none;
+}
+.spectrum-help-heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.spectrum-help-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+.spectrum-help-list li {
+  margin-bottom: 0.35rem;
+}
+.spectrum-modal-body {
+  padding: 1.25rem;
+  overflow: auto;
+}
+/* Canvas size is set in JS to match data (1:1 pixels). Don't scale with CSS or it blurs. */
+.spectrum-modal-body canvas {
+  display: block;
+  border-radius: 8px;
+  background: #0a0a0e;
+}
 
 /* Loading / empty state */
 .empty-state {

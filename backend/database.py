@@ -117,6 +117,20 @@ def get_history(
     return [dict(r) for r in rows]
 
 
+def get_analysis_by_id(analysis_id: int) -> Optional[dict]:
+    """Return one analysis row by id, or None."""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.row_factory = sqlite3.Row
+        cur = conn.execute(
+            """SELECT id, file_path, file_name, file_size, format, verdict, score, diagnostic, analyzed_at,
+                duration_sec, bitrate_kbps, actual_bitrate_kbps, clipping_pct, peak_dbfs, lexicon_track_id
+            FROM analyses WHERE id = ?""",
+            (analysis_id,),
+        )
+        row = cur.fetchone()
+    return dict(row) if row else None
+
+
 def get_all_for_export() -> list[dict]:
     with sqlite3.connect(DB_PATH) as conn:
         conn.row_factory = sqlite3.Row

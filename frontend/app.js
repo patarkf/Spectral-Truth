@@ -90,8 +90,9 @@
       const date = formatDate(row.analyzed_at);
       const size = formatSize(row.file_size);
       const format = escapeHtml((row.format || "").toUpperCase());
+      const rowId = row.id != null ? row.id : "";
       return `
-        <tr>
+        <tr data-id="${rowId}">
           <td><div class="track-name"><span class="track-icon" aria-hidden="true">♪</span>${name}</div></td>
           <td>${quality}</td>
           <td class="metrics-cell">${bitrate}</td>
@@ -101,9 +102,226 @@
           <td class="date-cell">${date}</td>
           <td class="size-cell">${size}</td>
           <td class="format-cell">${format}</td>
+          <td class="spectrum-cell"><button type="button" class="spectrum-btn" data-id="${rowId}" aria-label="View frequency spectrum">View</button></td>
         </tr>
       `;
     }).join("");
+    setupSpectrumButtons();
+  }
+
+  // Spek default palette: SoX (Rob Sykes) — blue → purple → red → yellow → white.
+  // https://github.com/alexkay/spek/blob/master/src/spek-palette.cc (sox(), PALETTE_DEFAULT = PALETTE_SOX)
+  function spectrumPalette(level) {
+    level = Math.max(0, Math.min(1, level));
+    let r = 0, g = 0, b = 0;
+    if (level >= 0.13 && level < 0.73) {
+      r = Math.sin(((level - 0.13) / 0.6) * (Math.PI / 2));
+    } else if (level >= 0.73) {
+      r = 1;
+    }
+    if (level >= 0.6 && level < 0.91) {
+      g = Math.sin(((level - 0.6) / 0.31) * (Math.PI / 2));
+    } else if (level >= 0.91) {
+      g = 1;
+    }
+    if (level < 0.6) {
+      b = 0.5 * Math.sin((level / 0.6) * Math.PI);
+    } else if (level >= 0.78) {
+      b = (level - 0.78) / 0.22;
+    }
+    return [
+      Math.round(r * 255),
+      Math.round(g * 255),
+      Math.round(b * 255)
+    ];
+  }
+
+  function drawSpectrogram(canvas, data) {
+    const freqs = data.freqs || [];
+    const times = data.times || [];
+    const magDb = data.mag_db || [];
+    if (!freqs.length || !times.length || !magDb.length) return;
+    const nF = freqs.length;
+    const nT = times.length;
+    const leftPad = 58;
+    const bottomPad = 36;
+    const rightPad = 88;
+    const topPad = 10;
+    const specW = nT;
+    const specH = nF;
+    const w = leftPad + specW + rightPad;
+    const h = topPad + specH + bottomPad;
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = false;
+    // Fixed scale -140 to 0 dB (Spek-style) so quiet content isn't clipped; linear-ish mapping so colors match Spek
+    const minDb = -140;
+    const maxDb = 0;
+    const dbRange = maxDb - minDb;
+    const levelCap = 0.82; // no white at top
+    const gamma = 1.15;    // near-linear so faint high-freq content is visible (Spek uses linear)
+    function dbToLevel(linear) {
+      const clamped = Math.max(0, Math.min(1, linear));
+      return Math.min(levelCap, Math.pow(clamped, gamma));
+    }
+
+    ctx.fillStyle = "#0a0a0e";
+    ctx.fillRect(0, 0, w, h);
+
+    // 1:1 pixel mapping (Spek-style): one pixel per (time, freq) — no upscaling = sharp
+    const imageData = ctx.createImageData(specW, specH);
+    const buf = imageData.data;
+    for (let py = 0; py < specH; py++) {
+      const fi = specH - 1 - py;
+      for (let px = 0; px < specW; px++) {
+        const ti = px;
+        const db = magDb[fi][ti];
+        const linear = (db - minDb) / dbRange;
+        const level = dbToLevel(linear);
+        const [r, g, b] = spectrumPalette(level);
+        const i = (py * specW + px) * 4;
+        buf[i] = r;
+        buf[i + 1] = g;
+        buf[i + 2] = b;
+        buf[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(imageData, leftPad, topPad);
+
+    const maxFreq = freqs[nF - 1];
+    const durationSec = times[nT - 1] || 0;
+
+    // Styles for axes
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.fillStyle = "#e8e8ec";
+    ctx.font = "11px Inter, sans-serif";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+
+    // Left axis: frequency (kHz)
+    ctx.beginPath();
+    ctx.moveTo(leftPad, topPad);
+    ctx.lineTo(leftPad, topPad + specH);
+    ctx.stroke();
+    const freqSteps = [0, 5, 10, 15, 20].filter((k) => k <= maxFreq / 1000);
+    if (maxFreq / 1000 > 20) freqSteps.push(Math.round(maxFreq / 1000));
+    freqSteps.forEach((kHz) => {
+      const frac = kHz / (maxFreq / 1000);
+      const y = topPad + specH * (1 - frac);
+      ctx.fillText(kHz + " kHz", leftPad - 6, y);
+    });
+
+    // Bottom axis: time (M:SS) — minute marks like Spek / Faking the Funk
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.beginPath();
+    ctx.moveTo(leftPad, topPad + specH);
+    ctx.lineTo(leftPad + specW, topPad + specH);
+    ctx.stroke();
+    const totalMinutes = Math.ceil(durationSec / 60) || 1;
+    const step = totalMinutes <= 10 ? 1 : totalMinutes <= 30 ? 5 : Math.ceil(totalMinutes / 6);
+    for (let m = 0; m <= totalMinutes; m += step) {
+      const x = leftPad + (m / totalMinutes) * specW;
+      ctx.fillText(m + ":00", x, topPad + specH + 6);
+    }
+    const lastMin = Math.floor(durationSec / 60);
+    const lastSec = Math.round(durationSec % 60);
+    const lastLabel = lastMin + ":" + (lastSec < 10 ? "0" : "") + lastSec;
+    ctx.fillText(lastLabel, leftPad + specW, topPad + specH + 6);
+
+    // Right: color bar + dB scale + label (what the colors mean)
+    const barW = 12;
+    const barX = w - rightPad + 4;
+    for (let py = 0; py < specH; py++) {
+      const linear = 1 - py / specH;
+      const level = levelCap * linear;
+      const [r, g, b] = spectrumPalette(level);
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(barX, topPad + py, barW, 2);
+    }
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.strokeRect(barX, topPad, barW, specH);
+    ctx.fillStyle = "#e8e8ec";
+    ctx.font = "10px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    [-140, -120, -100, -80, -60, -40, -20, 0].forEach((db) => {
+      const linear = (db - minDb) / dbRange;
+      const level = dbToLevel(linear);
+      const y = topPad + specH * (1 - level / levelCap);
+      ctx.fillText(db + " dB", barX + barW + 6, y);
+    });
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillStyle = "rgba(232,232,236,0.9)";
+    ctx.font = "11px Inter, sans-serif";
+    ctx.fillText("Amplitude (dB)", barX + barW / 2, topPad - 4);
+
+    // Border around spectrogram
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.strokeRect(leftPad, topPad, specW, specH);
+  }
+
+  function openSpectrumModal(data) {
+    const modal = document.getElementById("spectrum-modal");
+    const title = document.getElementById("spectrum-modal-title");
+    const canvas = document.getElementById("spectrum-canvas");
+    const helpPanel = document.getElementById("spectrum-help");
+    if (!modal || !title || !canvas) return;
+    title.textContent = (data.file_name || "Frequency spectrum") + (data.verdict ? ` (${data.verdict})` : "");
+    if (helpPanel) helpPanel.setAttribute("hidden", "");
+    drawSpectrogram(canvas, data);
+    modal.style.display = "flex";
+  }
+
+  function closeSpectrumModal() {
+    const modal = document.getElementById("spectrum-modal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function setupSpectrumButtons() {
+    document.querySelectorAll(".spectrum-btn").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.getAttribute("data-id");
+        if (!id) return;
+        try {
+          const res = await fetch(API + "/spectrum?id=" + encodeURIComponent(id), { cache: "no-store" });
+          if (res.status === 404) {
+            let msg = "Spectrum only available for tracks analyzed from disk (e.g. Lexicon).";
+            try {
+              const j = await res.json();
+              if (j.detail) msg = typeof j.detail === "string" ? j.detail : msg;
+            } catch (e) {}
+            showStatus(msg, "error");
+            return;
+          }
+          if (!res.ok) throw new Error(await res.text());
+          const data = await res.json();
+          openSpectrumModal(data);
+        } catch (e) {
+          showStatus("Error loading spectrum: " + e.message, "error");
+        }
+      });
+    });
+  }
+
+  function setupSpectrumModal() {
+    const modal = document.getElementById("spectrum-modal");
+    const closeBtn = document.getElementById("spectrum-modal-close");
+    const infoBtn = document.getElementById("spectrum-modal-info");
+    const helpPanel = document.getElementById("spectrum-help");
+    const backdrop = modal?.querySelector(".spectrum-modal-backdrop");
+    if (closeBtn) closeBtn.addEventListener("click", closeSpectrumModal);
+    if (backdrop) backdrop.addEventListener("click", closeSpectrumModal);
+    if (infoBtn && helpPanel) {
+      infoBtn.addEventListener("click", () => {
+        const isHidden = helpPanel.hasAttribute("hidden");
+        if (isHidden) helpPanel.removeAttribute("hidden");
+        else helpPanel.setAttribute("hidden", "");
+      });
+    }
+    document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSpectrumModal(); });
   }
 
   function buildHistoryParams() {
@@ -402,6 +620,7 @@
     setupLexicon();
     setupReloadApp();
     setupSortableHeaders();
+    setupSpectrumModal();
     lexiconRefreshStatus();
     const searchInput = document.getElementById("search-input");
     if (searchInput) {

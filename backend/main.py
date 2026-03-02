@@ -18,8 +18,9 @@ from backend.database import (
     clear_history,
     get_verdict_counts,
     get_lexicon_track_ids_by_verdict,
+    get_analysis_by_id,
 )
-from backend.analyzer import analyze_file, ALLOWED_SUFFIXES
+from backend.analyzer import analyze_file, compute_spectrogram, ALLOWED_SUFFIXES
 from backend import lexicon_client
 
 APP_DIR = Path(__file__).resolve().parent
@@ -143,6 +144,33 @@ def history(
 def history_counts():
     """Return counts by verdict: fake, suspicious, real, total."""
     return get_verdict_counts()
+
+
+@app.get("/api/spectrum")
+def spectrum(id: int = Query(..., description="Analysis id")):
+    """
+    Return spectrogram data for a track (freqs, times, mag_db) for display.
+    Only works when the analysis has a file_path that exists on disk (e.g. from Lexicon).
+    """
+    row = get_analysis_by_id(id)
+    if not row:
+        raise HTTPException(404, "Analysis not found")
+    file_path = row.get("file_path") or ""
+    path = Path(file_path)
+    if not path.is_absolute() or not path.exists() or not path.is_file():
+        raise HTTPException(
+            404,
+            "Spectrum only available for tracks analyzed from disk (e.g. Lexicon). File path not found.",
+        )
+    try:
+        data = compute_spectrogram(path)
+        data["file_name"] = row.get("file_name")
+        data["verdict"] = row.get("verdict")
+        return data
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
 
 def _lexicon_debug_shape():

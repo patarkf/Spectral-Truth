@@ -247,3 +247,68 @@ def analyze_file(path: Union[str, Path]) -> dict:
         "clipping_pct": clipping_pct,
         "peak_dbfs": peak_dbfs,
     }
+
+
+# Display spectrogram: Spek uses 1:1 pixel mapping (one FFT column per time pixel,
+# one bin per freq pixel) for sharpness. We target similar resolution for crisp output.
+SPEC_FREQ_BINS = 600
+SPEC_TIME_BINS = 800
+
+
+def _spectrogram_db(mag: np.ndarray, n_fft: int) -> np.ndarray:
+    """Convert STFT magnitude to dB using Spek/SoX-style normalization: 20*log10(mag/n_fft)."""
+    return 20.0 * np.log10(mag / n_fft + 1e-12)
+
+
+def compute_spectrogram(path: Union[str, Path]) -> dict:
+    """
+    Load audio and compute a spectrogram for display (Spek/SoX-style).
+    Uses same FFT size (2048), Hann window, and dB normalization as Spek so results
+    match other tools (Spek, Faking the Funk, MiniMeters). Returns { freqs, times, mag_db }.
+    """
+    path = Path(path)
+    if path.suffix.lower() not in ALLOWED_SUFFIXES:
+        raise ValueError(f"Unsupported format: {path.suffix}")
+    if not path.exists() or not path.is_file():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    y, sr = librosa.load(path, sr=None, mono=True)
+    # Match Spek: FFT 2^11 = 2048, 50% overlap, Hann window (Spek default)
+    n_fft = 2048
+    hop_length = n_fft // 2
+    S = np.abs(librosa.stft(y, n_fft=n_fft, hop_length=hop_length, window="hann"))
+    mag_db = _spectrogram_db(S, n_fft)
+    freqs = np.fft.rfftfreq(n_fft, 1.0 / sr)[: S.shape[0]]
+    times = librosa.frames_to_time(np.arange(S.shape[1]), sr=sr, hop_length=hop_length)
+
+    n_f, n_t = mag_db.shape
+    if n_f > SPEC_FREQ_BINS or n_t > SPEC_TIME_BINS:
+        # Freq: sample evenly 0 to Nyquist (22 kHz for 44.1k) so high-end is visible
+        if n_f > SPEC_FREQ_BINS:
+            indices = np.linspace(0, n_f - 1, SPEC_FREQ_BINS, dtype=int)
+            mag_db = mag_db[indices, :]
+            freqs = freqs[indices]
+        # Time: average consecutive frames per output column (Spek averages per pixel column)
+        if n_t > SPEC_TIME_BINS:
+            block = n_t // SPEC_TIME_BINS
+            mag_db = np.array([
+                np.mean(mag_db[:, i * block : min((i + 1) * block, n_t)], axis=1)
+                for i in range(SPEC_TIME_BINS)
+            ]).T
+            times = np.array([
+                float(np.mean(times[i * block : min((i + 1) * block, n_t)]))
+                for i in range(SPEC_TIME_BINS)
+            ])
+        else:
+            times = times[:SPEC_TIME_BINS]
+        n_f, n_t = mag_db.shape
+
+    # Spek uses -140..0 in range options; avoid clipping quiet content (e.g. high-freq)
+    mag_db = np.clip(mag_db, -140, 0)
+    return {
+        "freqs": freqs.tolist(),
+        "times": times.tolist(),
+        "mag_db": mag_db.tolist(),
+        "sr": sr,
+        "duration_sec": float(times[-1]) if len(times) else 0,
+    }

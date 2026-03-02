@@ -20,7 +20,7 @@ def free_port():
     try:
         import subprocess
         result = subprocess.run(
-            ["lsof", "-t", "-i", f":{PORT}"],
+            ["lsof", "-t", "-i", ":%d" % PORT],
             capture_output=True,
             text=True,
             timeout=5,
